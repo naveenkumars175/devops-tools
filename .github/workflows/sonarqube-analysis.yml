@@ -65,6 +65,7 @@ jobs:
             curl -X POST -H 'Content-Type: application/json' \
               -d '{"text":"✅ SonarQube analysis passed. No critical issues found."}' \
               ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
+          fi
 
 
 
