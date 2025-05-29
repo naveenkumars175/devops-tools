@@ -44,7 +44,7 @@ jobs:
       - name: Fail pipeline if quality gate fails
         run: |
           echo "Quality gate status: ${{ steps.qualitygate.outputs.quality-gate-status }}"
-          if [ "${{ steps.qualitygate.outputs.quality-gate-status }}" != "OK" ]; then
+          if [ "${{ steps.qualitygate.outputs.quality-gate-status }}" != "PASSED" ]; then
             echo "❌ SonarQube quality gate failed. Sending alert and exiting."
             curl -X POST -H 'Content-Type: application/json' \
               -d '{"text":"❌ SonarQube analysis failed due to critical issues. Pipeline stopped."}' \
