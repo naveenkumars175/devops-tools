@@ -19,7 +19,12 @@ jobs:
           python-version: '3.10'
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          else
+            echo "⚠️ No requirements.txt file found. Skipping dependency installation."
+          fi
 
       - name: Run SonarQube Scanner
         run: |
@@ -39,9 +44,8 @@ jobs:
       - name: Wait for SonarQube quality gate (polling)
         id: qualitygate
         uses: sonarsource/sonarqube-quality-gate-action@v1.1.0
-        with:
-          sonar-token: ${{ secrets.SONAR_TOKEN }}
         env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: 'http://localhost:9000'
 
       - name: Debug Quality Gate Output
@@ -49,7 +53,6 @@ jobs:
 
       - name: Fail pipeline if quality gate fails
         run: |
-          set -e
           echo "Quality gate status: ${{ steps.qualitygate.outputs.quality-gate-status }}"
 
           if [ "${{ steps.qualitygate.outputs.quality-gate-status }}" != "OK" ]; then
@@ -63,3 +66,4 @@ jobs:
             curl -X POST -H 'Content-Type: application/json' \
               -d '{"text":"✅ SonarQube analysis passed. No critical issues found."}' \
               ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
+
