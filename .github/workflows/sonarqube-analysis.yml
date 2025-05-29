@@ -33,6 +33,9 @@ jobs:
             -Dsonar.host.url=http://localhost:9000 \
             -Dsonar.login=${{ secrets.SONAR_TOKEN }}
 
+      - name: Wait before checking quality gate
+        run: sleep 20
+
       - name: Wait for SonarQube quality gate (polling)
         id: qualitygate
         uses: sonarsource/sonarqube-quality-gate-action@v1.1.0
@@ -41,17 +44,22 @@ jobs:
         env:
           SONAR_HOST_URL: 'http://localhost:9000'
 
+      - name: Debug Quality Gate Output
+        run: echo "Quality gate status is: ${{ steps.qualitygate.outputs.quality-gate-status }}"
+
       - name: Fail pipeline if quality gate fails
         run: |
+          set -e
           echo "Quality gate status: ${{ steps.qualitygate.outputs.quality-gate-status }}"
+
           if [ "${{ steps.qualitygate.outputs.quality-gate-status }}" != "OK" ]; then
-            echo "❌ SonarQube quality gate failed. Exiting with status 1."
+            echo "❌ SonarQube quality gate failed. Sending alert and exiting."
             curl -X POST -H 'Content-Type: application/json' \
-              -d '{"text":"❌ SonarQube analysis failed due to issues detected. Pipeline stopped."}' \
+              -d '{"text":"❌ SonarQube analysis failed due to critical issues. Pipeline stopped."}' \
               ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
             exit 1
           else
-            echo "✅ SonarQube quality gate passed successfully."
+            echo "✅ SonarQube quality gate passed."
             curl -X POST -H 'Content-Type: application/json' \
               -d '{"text":"✅ SonarQube analysis passed. No critical issues found."}' \
               ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
