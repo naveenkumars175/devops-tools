@@ -1,3 +1,97 @@
+#name: SonarQube Analysis
+#on:
+#  push:
+#    branches: [main]
+#  workflow_dispatch:
+#jobs:
+#  sonarqube-analysis:
+#    runs-on: self-hosted
+#    steps:
+#      - name: Checkout repository
+#        uses: actions/checkout@v3
+#      - name: Set up Python
+#        uses: actions/setup-python@v4
+#        with:
+#          python-version: '3.10'
+#      - name: Install dependencies
+#        run: |
+#          if [ -f requirements.txt ]; then
+#            pip install -r requirements.txt
+#          else
+#            echo "⚠️ No requirements.txt file found. Skipping dependency installation."
+#          fi
+#      - name: Run SonarQube Scanner
+#        run: |
+#          sonar-scanner \
+#            -Dsonar.projectKey=devops-tools-app \
+#            -Dsonar.projectName="DevOps Tools Showcase" \
+#            -Dsonar.projectVersion=2.0 \
+#            -Dsonar.sources=. \
+#            -Dsonar.language=py \
+#            -Dsonar.sourceEncoding=UTF-8 \
+#            -Dsonar.host.url=http://localhost:9000 \
+#            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+#      - name: Wait before checking quality gate
+#        run: sleep 60
+#      - name: Wait for SonarQube quality gate (polling)
+#        id: qualitygate
+#        uses: sonarsource/sonarqube-quality-gate-action@v1.1.0
+#        with:
+#          scanMetadataReportFile: '.scannerwork/report-task.txt'
+#        env:
+#          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+#          SONAR_HOST_URL: 'http://localhost:9000'
+#      - name: Fail pipeline if quality gate fails
+#        run: |
+#          echo "Quality gate status: ${{ steps.qualitygate.outputs.quality-gate-status }}"
+#          if [ "${{ steps.qualitygate.outputs.quality-gate-status }}" != "PASSED" ]; then
+#            echo "❌ SonarQube quality gate failed. Sending alert and exiting."
+#            curl -X POST -H 'Content-Type: application/json' \
+#              -d '{"text":"❌ SonarQube analysis failed due to critical issues. Pipeline stopped."}' \
+#              '${{ secrets.GOOGLE_CHAT_WEBHOOK }}'
+#            exit 0
+#          else
+#            echo "✅ SonarQube quality gate passed."
+#            curl -X POST -H 'Content-Type: application/json' \
+#              -d '{"text":"✅ SonarQube analysis passed. No critical issues found."}' \
+#              '${{ secrets.GOOGLE_CHAT_WEBHOOK }}'
+#          fi
+#  
+#    trivy-scan:
+#    runs-on: self-hosted   # Same runner as SonarQube (adjust if needed)
+#    needs: sonarqube-analysis  # Optional: run after SonarQube
+#
+#    steps:
+#      - name: Checkout repository
+#        uses: actions/checkout@v3
+#
+#      - name: Build Docker image
+#        run: docker build -t devops-tools-app:latest .
+#
+#      - name: Run Aqua Trivy vulnerability scan on Docker image
+#        uses: aquasecurity/trivy-action@v0.10.0
+#        with:
+#          image-ref: devops-tools-app:latest
+#          format: table
+#          severity: CRITICAL,HIGH,MEDIUM
+#          exit-code: 0          # do not fail the workflow even if vulns found, just notify
+#          ignore-unfixed: true  # ignore vulnerabilities that don't have fixes yet
+#
+#      - name: Send success message to Google Chat
+#        if: success()
+#        run: |
+#          curl -X POST -H 'Content-Type: application/json' \
+#            -d '{"text":"✅ Aqua Trivy process ran successfully with 0 vulnerabilities."}' \
+#            '${{ secrets.GOOGLE_CHAT_WEBHOOK }}'
+#
+#      - name: Send alert if vulnerabilities found
+#        if: failure()
+#        run: |
+#          curl -X POST -H 'Content-Type: application/json' \
+#            -d '{"text":"❌ Aqua Trivy scan detected vulnerabilities in the Docker image."}' \
+#            '${{ secrets.GOOGLE_CHAT_WEBHOOK }}'
+
+
 name: SonarQube Analysis
 on:
   push:
@@ -56,34 +150,29 @@ jobs:
               -d '{"text":"✅ SonarQube analysis passed. No critical issues found."}' \
               '${{ secrets.GOOGLE_CHAT_WEBHOOK }}'
           fi
-  
-    trivy-scan:
-    runs-on: self-hosted   # Same runner as SonarQube (adjust if needed)
-    needs: sonarqube-analysis  # Optional: run after SonarQube
 
+  trivy-scan:
+    runs-on: self-hosted
+    needs: sonarqube-analysis
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
       - name: Build Docker image
         run: docker build -t devops-tools-app:latest .
-
       - name: Run Aqua Trivy vulnerability scan on Docker image
         uses: aquasecurity/trivy-action@v0.10.0
         with:
           image-ref: devops-tools-app:latest
           format: table
           severity: CRITICAL,HIGH,MEDIUM
-          exit-code: 0          # do not fail the workflow even if vulns found, just notify
-          ignore-unfixed: true  # ignore vulnerabilities that don't have fixes yet
-
+          exit-code: 0
+          ignore-unfixed: true
       - name: Send success message to Google Chat
         if: success()
         run: |
           curl -X POST -H 'Content-Type: application/json' \
             -d '{"text":"✅ Aqua Trivy process ran successfully with 0 vulnerabilities."}' \
             '${{ secrets.GOOGLE_CHAT_WEBHOOK }}'
-
       - name: Send alert if vulnerabilities found
         if: failure()
         run: |
