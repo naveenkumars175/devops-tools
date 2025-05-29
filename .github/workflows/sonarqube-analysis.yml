@@ -41,6 +41,9 @@ jobs:
       - name: Wait before checking quality gate
         run: sleep 20
 
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
       - name: Wait for SonarQube quality gate (polling)
         id: qualitygate
         uses: sonarsource/sonarqube-quality-gate-action@v1.1.0
