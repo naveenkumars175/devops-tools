@@ -1,0 +1,63 @@
+name: SonarQube Analysis
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      sonar_option_flag:
+        description: "Set 0 to ignore issues, 1 to fail on critical vulnerabilities"
+        required: true
+        default: '1'
+
+jobs:
+  sonarqube-analysis:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run SonarQube Scanner
+        run: |
+          sonar-scanner \
+            -Dsonar.projectKey=devops-tools \
+            -Dsonar.sources=. \
+            -Dsonar.host.url=http://localhost:9000 \
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+
+      - name: Wait for SonarQube quality gate (polling)
+        id: qualitygate
+        uses: sonarsource/sonarqube-quality-gate-action@v1.1.0
+        with:
+          sonar-token: ${{ secrets.SONAR_TOKEN }}
+        env:
+          SONAR_HOST_URL: 'http://localhost:9000'
+
+      - name: Conditional check for quality gate status
+        run: |
+          echo "Quality gate status: ${{ steps.qualitygate.outputs.quality-gate-status }}"
+          echo "User selected option: ${{ github.event.inputs.sonar_option_flag }}"
+
+          if [[ "${{ github.event.inputs.sonar_option_flag }}" == "1" && "${{ steps.qualitygate.outputs.quality-gate-status }}" != "OK" ]]; then
+            echo "Pipeline stopped due to critical vulnerabilities"
+            echo "sending message to google chat"
+            curl -X POST -H 'Content-Type: application/json' \
+              -d '{"text":"❌ SonarQube analysis failed with critical issues. Pipeline stopped."}' \
+              ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
+            exit 1
+          else
+            echo "Proceeding with the pipeline"
+            curl -X POST -H 'Content-Type: application/json' \
+              -d '{"text":"✅ SonarQube analysis passed or bypassed based on option flag."}' \
+              ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
+          fi
+
