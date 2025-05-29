@@ -56,3 +56,37 @@ jobs:
               -d '{"text":"✅ SonarQube analysis passed. No critical issues found."}' \
               '${{ secrets.GOOGLE_CHAT_WEBHOOK }}'
           fi
+  
+    trivy-scan:
+    runs-on: self-hosted   # Same runner as SonarQube (adjust if needed)
+    needs: sonarqube-analysis  # Optional: run after SonarQube
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Build Docker image
+        run: docker build -t devops-tools-app:latest .
+
+      - name: Run Aqua Trivy vulnerability scan on Docker image
+        uses: aquasecurity/trivy-action@v0.10.0
+        with:
+          image-ref: devops-tools-app:latest
+          format: table
+          severity: CRITICAL,HIGH,MEDIUM
+          exit-code: 0          # do not fail the workflow even if vulns found, just notify
+          ignore-unfixed: true  # ignore vulnerabilities that don't have fixes yet
+
+      - name: Send success message to Google Chat
+        if: success()
+        run: |
+          curl -X POST -H 'Content-Type: application/json' \
+            -d '{"text":"✅ Aqua Trivy process ran successfully with 0 vulnerabilities."}' \
+            '${{ secrets.GOOGLE_CHAT_WEBHOOK }}'
+
+      - name: Send alert if vulnerabilities found
+        if: failure()
+        run: |
+          curl -X POST -H 'Content-Type: application/json' \
+            -d '{"text":"❌ Aqua Trivy scan detected vulnerabilities in the Docker image."}' \
+            '${{ secrets.GOOGLE_CHAT_WEBHOOK }}'
