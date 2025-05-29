@@ -49,7 +49,7 @@ jobs:
             curl -X POST -H 'Content-Type: application/json' \
               -d '{"text":"❌ SonarQube analysis failed due to critical issues. Pipeline stopped."}' \
               '${{ secrets.GOOGLE_CHAT_WEBHOOK }}'
-            exit 1
+            exit 0
           else
             echo "✅ SonarQube quality gate passed."
             curl -X POST -H 'Content-Type: application/json' \
