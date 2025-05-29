@@ -44,13 +44,12 @@ jobs:
       - name: Wait for SonarQube quality gate (polling)
         id: qualitygate
         uses: sonarsource/sonarqube-quality-gate-action@v1.1.0
+        with:
+          scanMetadataReportFile: '.scannerwork/report-task.txt'
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: 'http://localhost:9000'
-
-      - name: Debug Quality Gate Output
-        run: echo "Quality gate status is: ${{ steps.qualitygate.outputs.quality-gate-status }}"
-
+            
       - name: Fail pipeline if quality gate fails
         run: |
           echo "Quality gate status: ${{ steps.qualitygate.outputs.quality-gate-status }}"
@@ -66,5 +65,6 @@ jobs:
             curl -X POST -H 'Content-Type: application/json' \
               -d '{"text":"✅ SonarQube analysis passed. No critical issues found."}' \
               ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
+
 
 
