@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DevOps Tools</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>DevOps & CI/CD Tools Showcase</h1>
+    <div class="tools-container">
+        {% for tool in tools %}
+        <div class="tool-card">
+            <img src="{{ url_for('static', filename='images/' + tool.image) }}" alt="{{ tool.name }}">
+            <h2>{{ tool.name }}</h2>
+            <p>{{ tool.desc }}</p>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>
+
