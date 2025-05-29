@@ -305,7 +305,7 @@ jobs:
           sonar-scanner \
             -Dsonar.projectKey=devops-tools-app \
             -Dsonar.projectName="DevOps Tools Showcase" \
-            -Dsonar.projectVersion=2.0 \
+            -Dsonar.projectVersion=3.0 \
             -Dsonar.sources=. \
             -Dsonar.language=py \
             -Dsonar.sourceEncoding=UTF-8 \
