@@ -39,7 +39,7 @@ jobs:
             -Dsonar.login=${{ secrets.SONAR_TOKEN }}
 
       - name: Wait before checking quality gate
-        run: sleep 20
+        run: sleep 60
 
       - name: Wait for SonarQube quality gate (polling)
         id: qualitygate
