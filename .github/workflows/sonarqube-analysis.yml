@@ -1,23 +1,18 @@
 name: SonarQube Analysis
-
 on:
   push:
     branches: [main]
   workflow_dispatch:
-
 jobs:
   sonarqube-analysis:
     runs-on: self-hosted
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-
       - name: Install dependencies
         run: |
           if [ -f requirements.txt ]; then
@@ -25,7 +20,6 @@ jobs:
           else
             echo "⚠️ No requirements.txt file found. Skipping dependency installation."
           fi
-
       - name: Run SonarQube Scanner
         run: |
           sonar-scanner \
@@ -37,10 +31,8 @@ jobs:
             -Dsonar.sourceEncoding=UTF-8 \
             -Dsonar.host.url=http://localhost:9000 \
             -Dsonar.login=${{ secrets.SONAR_TOKEN }}
-
       - name: Wait before checking quality gate
         run: sleep 60
-
       - name: Wait for SonarQube quality gate (polling)
         id: qualitygate
         uses: sonarsource/sonarqube-quality-gate-action@v1.1.0
@@ -49,23 +41,18 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: 'http://localhost:9000'
-            
       - name: Fail pipeline if quality gate fails
         run: |
           echo "Quality gate status: ${{ steps.qualitygate.outputs.quality-gate-status }}"
-
           if [ "${{ steps.qualitygate.outputs.quality-gate-status }}" != "OK" ]; then
             echo "❌ SonarQube quality gate failed. Sending alert and exiting."
             curl -X POST -H 'Content-Type: application/json' \
               -d '{"text":"❌ SonarQube analysis failed due to critical issues. Pipeline stopped."}' \
-              ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
+              '${{ secrets.GOOGLE_CHAT_WEBHOOK }}'
             exit 1
           else
             echo "✅ SonarQube quality gate passed."
             curl -X POST -H 'Content-Type: application/json' \
               -d '{"text":"✅ SonarQube analysis passed. No critical issues found."}' \
-              ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
+              '${{ secrets.GOOGLE_CHAT_WEBHOOK }}'
           fi
-
-
-
