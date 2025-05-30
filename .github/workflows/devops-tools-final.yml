@@ -329,15 +329,15 @@ jobs:
         run: |
           echo "Quality gate status: ${{ steps.qualitygate.outputs.quality-gate-status }}"
           if [ "${{ steps.qualitygate.outputs.quality-gate-status }}" = "FAILED" ]; then
-            echo "❌ SonarQube quality gate failed. Sending alert and exiting."
+            echo "SonarQube quality gate failed. Sending alert and exiting."
             curl -X POST -H 'Content-Type: application/json' \
-              -d '{"text":"❌ SonarQube analysis failed due to critical issues. Pipeline stopped."}' \
+              -d '{"text":" SonarQube analysis failed due to critical issues. Pipeline stopped."}' \
               '${{ secrets.GOOGLE_CHAT_WEBHOOK }}'
             exit 1
           else
-            echo "✅ SonarQube quality gate passed."
+            echo "SonarQube quality gate passed."
             curl -X POST -H 'Content-Type: application/json' \
-              -d '{"text":"✅ SonarQube analysis passed. No critical issues found."}' \
+              -d '{"text":"SonarQube analysis passed. No critical issues found."}' \
               '${{ secrets.GOOGLE_CHAT_WEBHOOK }}'
           fi
 
@@ -371,12 +371,12 @@ jobs:
         if: success()
         run: |
           curl -X POST -H 'Content-Type: application/json' \
-            -d '{"text":"✅ Aqua Trivy scan completed successfully with no critical vulnerabilities."}' \
+            -d '{"text":"Aqua Trivy scan completed successfully with no critical vulnerabilities."}' \
             '${{ secrets.GOOGLE_CHAT_WEBHOOK }}'
 
       - name: Send alert if vulnerabilities found
         if: failure()
         run: |
           curl -X POST -H 'Content-Type: application/json' \
-            -d '{"text":"❌ Aqua Trivy scan detected critical vulnerabilities in the Docker image."}' \
+            -d '{"text":"Aqua Trivy scan detected critical vulnerabilities in the Docker image."}' \
             '${{ secrets.GOOGLE_CHAT_WEBHOOK }}'
